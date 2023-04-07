@@ -1,39 +1,49 @@
 package com.reynnova.notes.api.controller;
 
 import com.reynnova.notes.api.model.Project;
-import com.reynnova.notes.service.ProjectService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.reynnova.notes.service.SessionFactoryProvider;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 public class ProjectController {
 
-    private ProjectService projectService;
-
-    @Autowired
-    public ProjectController(ProjectService projectService) {
-        this.projectService = projectService;
-    }
-
     @GetMapping(value={"/project", "/project/"}, params = "!id")
     public List<Project> getProjects() {
-        return projectService.getProjects();
+        SessionFactory sessionFactory = SessionFactoryProvider.provideSessionFactory();
+        Session session = sessionFactory.openSession();
+
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Project> criteria = builder.createQuery(Project.class);
+        criteria.from(Project.class);
+
+        List<Project> list = session.createQuery(criteria).getResultList();
+
+        session.close();
+
+        return list;
     }
 
     @GetMapping(value = "/project", params = "id")
-    public Project getProject(@RequestParam int id) {
-        Optional<Project> project = projectService.getProject(id);
+    public Project getProject(@RequestParam Integer id) {
+        SessionFactory sessionFactory = SessionFactoryProvider.provideSessionFactory();
+        Session session = sessionFactory.openSession();
 
-        if (project.isPresent()) {
-            return (Project) project.get();
-        }
+        CriteriaBuilder builder = session.getCriteriaBuilder();
+        CriteriaQuery<Project> criteria = builder.createQuery(Project.class);
+        criteria.from(Project.class);
 
-        return null;
+        Project project = session.get(Project.class, id);
+
+        session.close();
+
+        return project;
     }
 }

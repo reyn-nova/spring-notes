@@ -1,13 +1,19 @@
 package com.reynnova.notes.api.model;
 
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "\"Project\"")
 public class Project {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
+
+    // @Column(name = "name")
     private String name;
 
-    public Project(int id, String name) {
-        this.id = id;
-        this.name = name;
+    public Project() {
     }
 
     public int getId() {
