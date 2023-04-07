@@ -2,6 +2,9 @@ package com.reynnova.notes.api.model;
 
 import jakarta.persistence.*;
 
+import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 @Entity
 @Table(name = "\"Project\"")
 public class Project {
@@ -10,11 +13,12 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    // @Column(name = "name")
     private String name;
 
-    public Project() {
-    }
+    @OneToMany(mappedBy="project")
+    private Set<Note> notes;
+
+    public Project() {}
 
     public int getId() {
         return id;
@@ -30,5 +34,14 @@ public class Project {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Set<Note> getNotes() {
+        return  notes;
+    }
+
+    public void setNotes(Set<Note> notes) {
+        this.notes = notes;
     }
 }

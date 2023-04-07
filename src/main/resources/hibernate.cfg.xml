@@ -20,6 +20,7 @@
 
     <!-- Annotated entity classes -->
     <mapping class="com.reynnova.notes.api.model.Project"/>
+    <mapping class="com.reynnova.notes.api.model.Note"/>
 
 </session-factory>
 </hibernate-configuration>
