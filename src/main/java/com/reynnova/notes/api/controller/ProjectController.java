@@ -21,16 +21,17 @@ public class ProjectController {
         this.projectService = projectService;
     }
 
-    @GetMapping("/project")
-    public <Any> Any getProject(@RequestParam Optional<Integer> id) {
-        if (id.isEmpty()) {
-            return (Any) projectService.getProjects();
-        }
+    @GetMapping(value={"/project", "/project/"}, params = "!id")
+    public List<Project> getProjects() {
+        return projectService.getProjects();
+    }
 
-        Optional<Project> project = projectService.getProject(id.get());
+    @GetMapping(value = "/project", params = "id")
+    public Project getProject(@RequestParam int id) {
+        Optional<Project> project = projectService.getProject(id);
 
         if (project.isPresent()) {
-            return (Any) project.get();
+            return (Project) project.get();
         }
 
         return null;
