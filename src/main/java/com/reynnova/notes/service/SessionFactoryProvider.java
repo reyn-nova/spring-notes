@@ -1,10 +1,10 @@
 package com.reynnova.notes.service;
 
-import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.Session;
 
 public class SessionFactoryProvider {
-    public static SessionFactory provideSessionFactory()
+    public static Session establishSession()
     {
         Configuration config = new Configuration();
 
@@ -14,6 +14,8 @@ public class SessionFactoryProvider {
 
         config.configure();
 
-        return config.buildSessionFactory();
+        Session session = config.buildSessionFactory().openSession();
+
+        return session;
     }
 }

@@ -1,27 +1,24 @@
 package com.reynnova.notes.api.controller;
 
-import com.reynnova.notes.api.model.Project;
-import com.reynnova.notes.service.SessionFactoryProvider;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import jakarta.persistence.criteria.CriteriaQuery;
+import org.hibernate.Session;
 import java.util.List;
+
+import com.reynnova.notes.api.model.Project;
+import com.reynnova.notes.service.SessionFactoryProvider;
 
 @RestController
 public class ProjectController {
 
     @GetMapping(value={"/project", "/project/"}, params = "!id")
     public List<Project> getProjects() {
-        SessionFactory sessionFactory = SessionFactoryProvider.provideSessionFactory();
-        Session session = sessionFactory.openSession();
+        Session session = SessionFactoryProvider.establishSession();
 
-        CriteriaBuilder builder = session.getCriteriaBuilder();
-        CriteriaQuery<Project> criteria = builder.createQuery(Project.class);
+        CriteriaQuery<Project> criteria = session.getCriteriaBuilder().createQuery(Project.class);
         criteria.from(Project.class);
 
         List<Project> list = session.createQuery(criteria).getResultList();
@@ -33,12 +30,7 @@ public class ProjectController {
 
     @GetMapping(value = "/project", params = "id")
     public Project getProject(@RequestParam Integer id) {
-        SessionFactory sessionFactory = SessionFactoryProvider.provideSessionFactory();
-        Session session = sessionFactory.openSession();
-
-        CriteriaBuilder builder = session.getCriteriaBuilder();
-        CriteriaQuery<Project> criteria = builder.createQuery(Project.class);
-        criteria.from(Project.class);
+        Session session = SessionFactoryProvider.establishSession();
 
         Project project = session.get(Project.class, id);
 
