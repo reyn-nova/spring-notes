@@ -1,6 +1,8 @@
 package com.reynnova.notes.api.controller;
 
 import com.reynnova.notes.api.model.Note;
+import com.reynnova.notes.service.ResponseProvider;
+import com.reynnova.notes.service.SessionProvider;
 import org.hibernate.Hibernate;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,14 +14,13 @@ import java.util.Map;
 import java.util.Set;
 
 import com.reynnova.notes.api.model.Project;
-import com.reynnova.notes.service.SessionFactoryProvider;
 
 @RestController
 public class ProjectController {
 
     @GetMapping(value={"/project", "/project/"})
-    public List<Project> getProjects() {
-        Session session = SessionFactoryProvider.establishSession();
+    public Map<String, Object> getProjects() {
+        Session session = SessionProvider.get();
 
         CriteriaQuery<Project> criteria = session.getCriteriaBuilder().createQuery(Project.class);
         criteria.from(Project.class);
@@ -32,24 +33,24 @@ public class ProjectController {
             item.setNotes(null);
         }
 
-        return list;
+        return ResponseProvider.get("Success get projects", list);
     }
 
     @PostMapping(value={"/project", "/project/"})
-    public Project addProject(@RequestBody Project project) {
-        Session session = SessionFactoryProvider.establishSession();
+    public Map<String, Object> addProject(@RequestBody Project project) {
+        Session session = SessionProvider.get();
 
         session.getTransaction().begin();
         session.persist(project);
         session.getTransaction().commit();
         session.close();
 
-        return project;
+        return ResponseProvider.get("Success create new project", project);
     }
 
     @PutMapping(value={"/project", "/project/"})
-    public Project updateProject(@RequestBody Map<String, String> json) {
-        Session session = SessionFactoryProvider.establishSession();
+    public Map<String, Object> updateProject(@RequestBody Map<String, String> json) {
+        Session session = SessionProvider.get();
 
         Project project = session.get(Project.class, json.get("id"));
         project.setName(json.get("name"));
@@ -61,12 +62,12 @@ public class ProjectController {
 
         project.setNotes(null);
 
-        return  project;
+        return ResponseProvider.get("Success update project", project);
     }
 
     @DeleteMapping(value={"/project", "/project/"})
-    public void deleteProject(@RequestBody Map<String, String> json) {
-        Session session = SessionFactoryProvider.establishSession();
+    public Map<String, Object> deleteProject(@RequestBody Map<String, String> json) {
+        Session session = SessionProvider.get();
 
         Project project = session.get(Project.class, json.get("id"));
 
@@ -83,17 +84,19 @@ public class ProjectController {
 
         session.getTransaction().commit();
         session.close();
+
+        return ResponseProvider.get("Success delete project", null);
     }
 
     @GetMapping(value = "/project/{id}")
-    public Project getProject(@PathVariable int id) {
-        Session session = SessionFactoryProvider.establishSession();
+    public Map<String, Object> getProject(@PathVariable int id) {
+        Session session = SessionProvider.get();
 
         Project project = session.get(Project.class, id);
         Hibernate.initialize(project.getNotes());
 
         session.close();
 
-        return project;
+        return ResponseProvider.get("Success get project", project);
     }
 }

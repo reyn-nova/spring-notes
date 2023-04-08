@@ -1,30 +1,31 @@
 package com.reynnova.notes.api.controller;
 
 import com.reynnova.notes.api.model.Note;
+import com.reynnova.notes.service.ResponseProvider;
 import org.springframework.web.bind.annotation.*;
 
 import org.hibernate.Session;
 import java.util.Map;
 
-import com.reynnova.notes.service.SessionFactoryProvider;
+import com.reynnova.notes.service.SessionProvider;
 
 @RestController
 public class NoteController {
     @PostMapping(value={"/note", "/note/"})
-    public Note addNote(@RequestBody Note note) {
-        Session session = SessionFactoryProvider.establishSession();
+    public Map<String, Object> addNote(@RequestBody Note note) {
+        Session session = SessionProvider.get();
 
         session.beginTransaction();
         session.persist(note);
         session.getTransaction().commit();
         session.close();
 
-        return note;
+        return ResponseProvider.get("Success create new note", note);
     }
 
     @PutMapping(value={"/note", "/note/"})
-    public Note updateNote(@RequestBody Map<String, String> json) {
-        Session session = SessionFactoryProvider.establishSession();
+    public Map<String, Object> updateNote(@RequestBody Map<String, String> json) {
+        Session session = SessionProvider.get();
 
         Note updatedNote = session.get(Note.class, json.get("id"));
         updatedNote.setValue(json.get("value"));
@@ -38,12 +39,12 @@ public class NoteController {
         session.getTransaction().commit();
         session.close();
 
-        return updatedNote;
+        return ResponseProvider.get("Success update note", updatedNote);
     }
 
     @DeleteMapping(value={"/note", "/note/"})
-    public void deleteNote(@RequestBody Map<String, String> json) {
-        Session session = SessionFactoryProvider.establishSession();
+    public Map<String, Object> deleteNote(@RequestBody Map<String, String> json) {
+        Session session = SessionProvider.get();
 
         Note note = session.get(Note.class, json.get("id"));
 
@@ -51,5 +52,7 @@ public class NoteController {
         session.remove(note);
         session.getTransaction().commit();
         session.close();
+
+        return ResponseProvider.get("Success delete note", null);
     }
 }

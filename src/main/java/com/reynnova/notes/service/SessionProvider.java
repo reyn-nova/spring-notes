@@ -3,8 +3,8 @@ package com.reynnova.notes.service;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.Session;
 
-public class SessionFactoryProvider {
-    public static Session establishSession()
+public class SessionProvider {
+    public static Session get()
     {
         Configuration config = new Configuration();
 
