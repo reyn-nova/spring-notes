@@ -1,5 +1,6 @@
 package com.reynnova.notes.api.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 
 @Entity
@@ -13,7 +14,8 @@ public class Note {
     private String value;
 
     @Column(name = "\"projectId\"")
-    private int projectId;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer projectId;
 
     @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name="\"projectId\"", nullable=false, insertable = false, updatable = false)
@@ -38,11 +40,11 @@ public class Note {
         this.value = value;
     }
 
-    public int getProjectId() {
+    public Integer getProjectId() {
         return this.projectId;
     }
 
-    public void setProjectId(int projectId) {
-        this.projectId = projectId;
+    public void setProjectId(Object projectId) {
+        this.projectId = (Integer) projectId;
     }
 }

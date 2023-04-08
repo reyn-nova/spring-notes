@@ -145,6 +145,10 @@ public class ProjectController {
 
         session.close();
 
+        for (Note note : project.getNotes()) {
+            note.setProjectId(null);
+        }
+
         return ResponseProvider.get(HttpStatus.OK, "Success get project", project);
     }
 }
