@@ -40,4 +40,16 @@ public class NoteController {
 
         return updatedNote;
     }
+
+    @DeleteMapping(value={"/note", "/note/"})
+    public void deleteNote(@RequestBody Map<String, String> json) {
+        Session session = SessionFactoryProvider.establishSession();
+
+        Note note = session.get(Note.class, json.get("id"));
+
+        session.beginTransaction();
+        session.remove(note);
+        session.getTransaction().commit();
+        session.close();
+    }
 }

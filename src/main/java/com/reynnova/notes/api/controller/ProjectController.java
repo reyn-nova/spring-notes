@@ -1,5 +1,6 @@
 package com.reynnova.notes.api.controller;
 
+import com.reynnova.notes.api.model.Note;
 import org.hibernate.Hibernate;
 import org.springframework.web.bind.annotation.*;
 
@@ -8,6 +9,7 @@ import org.hibernate.Session;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.reynnova.notes.api.model.Project;
 import com.reynnova.notes.service.SessionFactoryProvider;
@@ -45,19 +47,7 @@ public class ProjectController {
         return project;
     }
 
-    @GetMapping(value = "/project/{id}")
-    public Project getProject(@PathVariable int id) {
-        Session session = SessionFactoryProvider.establishSession();
-
-        Project project = session.get(Project.class, id);
-        Hibernate.initialize(project.getNotes());
-
-        session.close();
-
-        return project;
-    }
-
-    @PutMapping(value = "/project")
+    @PutMapping(value={"/project", "/project/"})
     public Project updateProject(@RequestBody Map<String, String> json) {
         Session session = SessionFactoryProvider.establishSession();
 
@@ -72,5 +62,38 @@ public class ProjectController {
         project.setNotes(null);
 
         return  project;
+    }
+
+    @DeleteMapping(value={"/project", "/project/"})
+    public void deleteProject(@RequestBody Map<String, String> json) {
+        Session session = SessionFactoryProvider.establishSession();
+
+        Project project = session.get(Project.class, json.get("id"));
+
+        Set<Note> notes = null;
+        Hibernate.initialize(notes = project.getNotes());
+
+        session.beginTransaction();
+
+        for (Note note : notes) {
+            session.remove(note);
+        }
+
+        session.remove(project);
+
+        session.getTransaction().commit();
+        session.close();
+    }
+
+    @GetMapping(value = "/project/{id}")
+    public Project getProject(@PathVariable int id) {
+        Session session = SessionFactoryProvider.establishSession();
+
+        Project project = session.get(Project.class, id);
+        Hibernate.initialize(project.getNotes());
+
+        session.close();
+
+        return project;
     }
 }
