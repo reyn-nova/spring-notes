@@ -21,6 +21,7 @@
     <!-- Annotated entity classes -->
     <mapping class="com.reynnova.notes.api.model.Project"/>
     <mapping class="com.reynnova.notes.api.model.Note"/>
+    <mapping class="com.reynnova.notes.api.model.User"/>
 
 </session-factory>
 </hibernate-configuration>
