@@ -1,14 +1,10 @@
 package com.reynnova.notes.api.controller;
 
 import com.reynnova.notes.api.model.Note;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
-import jakarta.persistence.criteria.CriteriaQuery;
 import org.hibernate.Session;
-import java.util.List;
+import java.util.Map;
 
 import com.reynnova.notes.service.SessionFactoryProvider;
 
@@ -21,9 +17,27 @@ public class NoteController {
         session.beginTransaction();
         session.persist(note);
         session.getTransaction().commit();
-
         session.close();
 
         return note;
+    }
+
+    @PutMapping(value={"/note", "/note/"})
+    public Note updateNote(@RequestBody Map<String, String> json) {
+        Session session = SessionFactoryProvider.establishSession();
+
+        Note updatedNote = session.get(Note.class, json.get("id"));
+        updatedNote.setValue(json.get("value"));
+
+        if (json.get("projectId") != null) {
+            updatedNote.setProjectId(Integer.parseInt(json.get("projectId")));
+        }
+
+        session.beginTransaction();
+        session.merge(updatedNote);
+        session.getTransaction().commit();
+        session.close();
+
+        return updatedNote;
     }
 }

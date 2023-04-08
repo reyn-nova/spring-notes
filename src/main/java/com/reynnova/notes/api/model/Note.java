@@ -15,7 +15,7 @@ public class Note {
     @Column(name = "\"projectId\"")
     private int projectId;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name="\"projectId\"", nullable=false, insertable = false, updatable = false)
     private Project project;
 
