@@ -1,7 +1,6 @@
 package com.reynnova.notes.api.model;
 
 import jakarta.persistence.*;
-
 import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonInclude;
 

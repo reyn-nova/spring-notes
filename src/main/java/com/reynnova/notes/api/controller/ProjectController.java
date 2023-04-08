@@ -1,11 +1,10 @@
 package com.reynnova.notes.api.controller;
 
-import com.reynnova.notes.api.model.Note;
-import com.reynnova.notes.service.ResponseProvider;
-import com.reynnova.notes.service.SessionProvider;
-import org.hibernate.Hibernate;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.hibernate.Hibernate;
 import jakarta.persistence.criteria.CriteriaQuery;
 import org.hibernate.Session;
 
@@ -13,13 +12,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.reynnova.notes.api.model.Note;
+import com.reynnova.notes.service.ResponseProvider;
+import com.reynnova.notes.service.SessionProvider;
 import com.reynnova.notes.api.model.Project;
 
 @RestController
 public class ProjectController {
 
     @GetMapping(value={"/project", "/project/"})
-    public Map<String, Object> getProjects() {
+    public ResponseEntity getProjects() {
         Session session = SessionProvider.get();
 
         CriteriaQuery<Project> criteria = session.getCriteriaBuilder().createQuery(Project.class);
@@ -33,27 +35,52 @@ public class ProjectController {
             item.setNotes(null);
         }
 
-        return ResponseProvider.get("Success get projects", list);
+        return ResponseProvider.get(HttpStatus.OK, "Success get projects", list);
     }
 
     @PostMapping(value={"/project", "/project/"})
-    public Map<String, Object> addProject(@RequestBody Project project) {
-        Session session = SessionProvider.get();
+    public ResponseEntity addProject(@RequestBody Map<String, String> json) {
+        String projectName = json.get("name");
 
+        if (projectName == null) {
+            projectName = "";
+        }
+
+        Project project = new Project();
+        project.setName(projectName);
+
+        Session session = SessionProvider.get();
         session.getTransaction().begin();
         session.persist(project);
         session.getTransaction().commit();
         session.close();
 
-        return ResponseProvider.get("Success create new project", project);
+        return ResponseProvider.get(HttpStatus.OK, "Success create new project", project);
     }
 
     @PutMapping(value={"/project", "/project/"})
-    public Map<String, Object> updateProject(@RequestBody Map<String, String> json) {
+    public ResponseEntity updateProject(@RequestBody Map<String, String> json) {
+        String projectName = json.get("name");
+
+        if (projectName == null || projectName.isBlank()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Project name is required", null);
+        }
+
         Session session = SessionProvider.get();
 
-        Project project = session.get(Project.class, json.get("id"));
-        project.setName(json.get("name"));
+        Project project;
+
+        try {
+            project = session.get(Project.class, json.get("id"));
+
+            if (project == null) {
+                return ResponseProvider.get(HttpStatus.NOT_FOUND, "Project not found", null);
+            }
+        } catch (Exception error) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        }
+
+        project.setName(projectName);
 
         session.beginTransaction();
         session.merge(project);
@@ -62,14 +89,24 @@ public class ProjectController {
 
         project.setNotes(null);
 
-        return ResponseProvider.get("Success update project", project);
+        return ResponseProvider.get(HttpStatus.OK, "Success update project", project);
     }
 
     @DeleteMapping(value={"/project", "/project/"})
-    public Map<String, Object> deleteProject(@RequestBody Map<String, String> json) {
+    public ResponseEntity deleteProject(@RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
-        Project project = session.get(Project.class, json.get("id"));
+        Project project;
+
+        try {
+            project = session.get(Project.class, json.get("id"));
+
+            if (project == null) {
+                return ResponseProvider.get(HttpStatus.NOT_FOUND, "Project not found", null);
+            }
+        } catch (Exception error) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        }
 
         Set<Note> notes = null;
         Hibernate.initialize(notes = project.getNotes());
@@ -85,18 +122,29 @@ public class ProjectController {
         session.getTransaction().commit();
         session.close();
 
-        return ResponseProvider.get("Success delete project", null);
+        return ResponseProvider.get(HttpStatus.OK, "Success delete project", null);
     }
 
     @GetMapping(value = "/project/{id}")
-    public Map<String, Object> getProject(@PathVariable int id) {
+    public ResponseEntity getProject(@PathVariable Object id) {
         Session session = SessionProvider.get();
 
-        Project project = session.get(Project.class, id);
+        Project project;
+
+        try {
+            project = session.get(Project.class, id);
+
+            if (project == null) {
+                return ResponseProvider.get(HttpStatus.NOT_FOUND, "Project not found", null);
+            }
+        } catch (Exception error) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        }
+
         Hibernate.initialize(project.getNotes());
 
         session.close();
 
-        return ResponseProvider.get("Success get project", project);
+        return ResponseProvider.get(HttpStatus.OK, "Success get project", project);
     }
 }
