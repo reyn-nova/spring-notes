@@ -2,6 +2,8 @@ package com.reynnova.notes.api.controller;
 
 import com.reynnova.notes.api.model.Note;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -12,18 +14,16 @@ import com.reynnova.notes.service.SessionFactoryProvider;
 
 @RestController
 public class NoteController {
-
-    @GetMapping(value={"/notes", "/notes/"})
-    public List<Note> getNotes() {
+    @PostMapping(value={"/note", "/note/"})
+    public Note addNote(@RequestBody Note note) {
         Session session = SessionFactoryProvider.establishSession();
 
-        CriteriaQuery<Note> criteria = session.getCriteriaBuilder().createQuery(Note.class);
-        criteria.from(Note.class);
-
-        List<Note> list = session.createQuery(criteria).getResultList();
+        session.beginTransaction();
+        session.persist(note);
+        session.getTransaction().commit();
 
         session.close();
 
-        return list;
+        return note;
     }
 }

@@ -12,8 +12,11 @@ public class Note {
 
     private String value;
 
+    @Column(name = "\"projectId\"")
+    private int projectId;
+
     @ManyToOne
-    @JoinColumn(name="\"projectId\"", nullable=false)
+    @JoinColumn(name="\"projectId\"", nullable=false, insertable = false, updatable = false)
     private Project project;
 
     public Note() {
@@ -33,5 +36,13 @@ public class Note {
 
     public void setValue(String value) {
         this.value = value;
+    }
+
+    public int getProjectId() {
+        return this.projectId;
+    }
+
+    public void setProjectId(int projectId) {
+        this.projectId = projectId;
     }
 }

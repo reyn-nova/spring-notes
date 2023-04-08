@@ -1,9 +1,7 @@
 package com.reynnova.notes.api.controller;
 
 import org.hibernate.Hibernate;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import jakarta.persistence.criteria.CriteriaQuery;
 import org.hibernate.Session;
@@ -16,7 +14,7 @@ import com.reynnova.notes.service.SessionFactoryProvider;
 @RestController
 public class ProjectController {
 
-    @GetMapping(value={"/project", "/project/"}, params = "!id")
+    @GetMapping(value={"/project", "/project/"})
     public List<Project> getProjects() {
         Session session = SessionFactoryProvider.establishSession();
 
@@ -34,9 +32,21 @@ public class ProjectController {
         return list;
     }
 
+    @PostMapping(value={"/project", "/project/"})
+    public Project addProject(@RequestBody Project project) {
+        Session session = SessionFactoryProvider.establishSession();
 
-    @GetMapping(value = "/project", params = "id")
-    public Project getProject(@RequestParam int id) {
+        session.getTransaction().begin();
+        session.persist(project);
+        session.getTransaction().commit();
+
+        session.close();
+
+        return project;
+    }
+
+    @GetMapping(value = "/project/{id}")
+    public Project getProject(@PathVariable int id) {
         Session session = SessionFactoryProvider.establishSession();
 
         Project project = session.get(Project.class, id);
