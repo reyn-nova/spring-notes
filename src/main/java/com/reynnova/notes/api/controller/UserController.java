@@ -1,6 +1,5 @@
 package com.reynnova.notes.api.controller;
 
-import com.reynnova.notes.api.model.Project;
 import com.reynnova.notes.api.model.User;
 import jakarta.persistence.Query;
 import org.springframework.http.HttpStatus;
@@ -123,5 +122,46 @@ public class UserController {
         user.setPassword(null);
 
         return ResponseProvider.get(HttpStatus.OK, "Success get user detail", user);
+    }
+
+    @DeleteMapping(value={"/delete-user", "/delete-user"})
+    public ResponseEntity deleteUser(@RequestBody Map<String, String> json) {
+        String password = json.get("password");
+        String confirmPassword = json.get("confirmPassword");
+
+        if (password == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified password", null);
+        }
+
+        if (confirmPassword == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified confirmPassword", null);
+        }
+
+        Session session = SessionProvider.get();
+
+        User user;
+
+        try {
+            user = session.get(User.class, json.get("id"));
+
+            if (user == null) {
+                return ResponseProvider.get(HttpStatus.NOT_FOUND, "User not found", null);
+            }
+        } catch (Exception error) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        }
+
+        Boolean isPasswordMatch = password.equals(confirmPassword) && BCrypt.checkpw(password, user.getPassword());
+
+        if (!isPasswordMatch) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong password or wrong confirmPassword", null);
+        }
+
+        session.beginTransaction();
+        session.remove(user);
+        session.getTransaction().commit();
+        session.close();
+
+        return ResponseProvider.get(HttpStatus.OK, "Success delete user", null);
     }
 }
