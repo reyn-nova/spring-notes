@@ -1,11 +1,13 @@
 package com.reynnova.notes.api.controller;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.reynnova.notes.service.JWTHelper;
+import jakarta.persistence.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import org.hibernate.Hibernate;
-import jakarta.persistence.criteria.CriteriaQuery;
 import org.hibernate.Session;
 
 import java.util.List;
@@ -19,17 +21,23 @@ import com.reynnova.notes.api.model.Project;
 
 @RestController
 public class ProjectController {
-
     @GetMapping(value={"/project", "/project/"})
-    public ResponseEntity getProjects() {
+    public ResponseEntity projects(@RequestHeader("Authorization") String token) {
         Session session = SessionProvider.get();
 
-        CriteriaQuery<Project> criteria = session.getCriteriaBuilder().createQuery(Project.class);
-        criteria.from(Project.class);
+        List<Project> list;
 
-        List<Project> list = session.createQuery(criteria).getResultList();
+        try {
+            DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
 
-        session.close();
+            Query query = session.createQuery("FROM Project P WHERE P.ownerId = " + decodedJWT.getSubject());
+
+            list = query.getResultList();
+
+            session.close();
+        } catch (Exception error) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid token", null);
+        }
 
         for (Project item : list) {
             item.setNotes(null);
@@ -38,8 +46,8 @@ public class ProjectController {
         return ResponseProvider.get(HttpStatus.OK, "Success get projects", list);
     }
 
-    @PostMapping(value={"/project", "/project/"})
-    public ResponseEntity addProject(@RequestBody Map<String, String> json) {
+    @PostMapping(value={"/create-project", "/create-project/"})
+    public ResponseEntity addProject(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         String projectName = json.get("name");
 
         if (projectName == null) {
@@ -50,6 +58,15 @@ public class ProjectController {
         project.setName(projectName);
 
         Session session = SessionProvider.get();
+
+        Integer ownerId = getSessionOwnerId(token);
+
+        if (ownerId == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
+        }
+
+        project.setOwnerId(ownerId);
+
         session.getTransaction().begin();
         session.persist(project);
         session.getTransaction().commit();
@@ -59,7 +76,7 @@ public class ProjectController {
     }
 
     @PutMapping(value={"/project", "/project/"})
-    public ResponseEntity updateProject(@RequestBody Map<String, String> json) {
+    public ResponseEntity updateProject(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         String projectName = json.get("name");
 
         if (projectName == null || projectName.isBlank()) {
@@ -68,16 +85,16 @@ public class ProjectController {
 
         Session session = SessionProvider.get();
 
-        Project project;
+        Integer ownerId = getSessionOwnerId(token);
 
-        try {
-            project = session.get(Project.class, json.get("id"));
+        if (ownerId == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
+        }
 
-            if (project == null) {
-                return ResponseProvider.get(HttpStatus.NOT_FOUND, "Project not found", null);
-            }
-        } catch (Exception error) {
-            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        Project project = getProjectById(session, json.get("id"));
+
+        if (project == null || ownerId != project.getOwnerId()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token or id", null);
         }
 
         project.setName(projectName);
@@ -93,22 +110,22 @@ public class ProjectController {
     }
 
     @DeleteMapping(value={"/project", "/project/"})
-    public ResponseEntity deleteProject(@RequestBody Map<String, String> json) {
+    public ResponseEntity deleteProject(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
-        Project project;
+        Integer ownerId = getSessionOwnerId(token);
 
-        try {
-            project = session.get(Project.class, json.get("id"));
-
-            if (project == null) {
-                return ResponseProvider.get(HttpStatus.NOT_FOUND, "Project not found", null);
-            }
-        } catch (Exception error) {
-            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        if (ownerId == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
         }
 
-        Set<Note> notes = null;
+        Project project = getProjectById(session, json.get("id"));
+
+        if (project == null || ownerId != project.getOwnerId()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token or id", null);
+        }
+
+        Set<Note> notes;
         Hibernate.initialize(notes = project.getNotes());
 
         session.beginTransaction();
@@ -125,30 +142,48 @@ public class ProjectController {
         return ResponseProvider.get(HttpStatus.OK, "Success delete project", null);
     }
 
-    @GetMapping(value = "/project/{id}")
-    public ResponseEntity getProject(@PathVariable Object id) {
+    @PostMapping(value={"/project", "/project/"})
+    public ResponseEntity projectDetail(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
-        Project project;
+        Integer ownerId = getSessionOwnerId(token);
 
-        try {
-            project = session.get(Project.class, id);
+        if (ownerId == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
+        }
 
-            if (project == null) {
-                return ResponseProvider.get(HttpStatus.NOT_FOUND, "Project not found", null);
-            }
-        } catch (Exception error) {
-            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        Project project = getProjectById(session, json.get("id"));
+
+        if (project == null || ownerId != project.getOwnerId()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token or id", null);
         }
 
         Hibernate.initialize(project.getNotes());
 
         session.close();
 
-        for (Note note : project.getNotes()) {
-            note.setProjectId(null);
-        }
-
         return ResponseProvider.get(HttpStatus.OK, "Success get project", project);
+    }
+
+    private Integer getSessionOwnerId(String token) {
+        Integer ownerId = null;
+
+        try {
+            DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
+
+            ownerId = Integer.parseInt(decodedJWT.getSubject());
+        } catch (Exception error) {}
+
+        return ownerId;
+    }
+
+    private Project getProjectById(Session session, Object id) {
+        Project project = null;
+
+        try {
+            project = session.get(Project.class, id);
+        } catch (Exception error) {}
+
+        return project;
     }
 }
