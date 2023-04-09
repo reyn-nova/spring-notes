@@ -1,6 +1,9 @@
 package com.reynnova.notes.api.controller;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.reynnova.notes.api.model.User;
+import com.reynnova.notes.service.JWTHelper;
 import jakarta.persistence.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +12,8 @@ import org.springframework.web.bind.annotation.*;
 
 import org.hibernate.Session;
 
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +22,7 @@ import com.reynnova.notes.service.SessionProvider;
 
 @RestController
 public class UserController {
+
     @PostMapping(value={"/sign-up", "/sign-up/"})
     public ResponseEntity signUp(@RequestBody Map<String, String> json) {
         String username = json.get("username");
@@ -60,7 +66,7 @@ public class UserController {
 
         user.setPassword(null);
 
-        return ResponseProvider.get(HttpStatus.OK, "Success create new user", user);
+        return ResponseProvider.get(HttpStatus.OK, "Success create new user", null);
     }
 
     @PostMapping(value={"/sign-in", "/sign-in/"})
@@ -98,23 +104,34 @@ public class UserController {
 
         user.setPassword(null);
 
-        return ResponseProvider.get(HttpStatus.OK, "Success sign in", user);
+        String token = JWT.create()
+            .withSubject(Integer.toString(user.getId()))
+            .withIssuedAt(new Date()).sign(JWTHelper.getAlgorithm());
+
+        Map<String, Object> data = new HashMap<>();
+
+        data.put("user", user);
+        data.put("token", token);
+
+        return ResponseProvider.get(HttpStatus.OK, "Success sign in", data);
     }
 
-    @PostMapping(value={"/user-detail", "/user-detail/"})
-    public ResponseEntity userDetail(@RequestBody Map<String, String> json) {
+    @GetMapping(value={"/user-detail", "/user-detail/"})
+    public ResponseEntity userDetail(@RequestHeader("Authorization") String token) {
         Session session = SessionProvider.get();
 
         User user;
 
         try {
-            user = session.get(User.class, json.get("id"));
+            DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
+
+            user = session.get(User.class, decodedJWT.getSubject());
 
             if (user == null) {
                 return ResponseProvider.get(HttpStatus.NOT_FOUND, "User not found", null);
             }
         } catch (Exception error) {
-            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid token", null);
         }
 
         session.close();
@@ -125,19 +142,21 @@ public class UserController {
     }
 
     @PutMapping(value= {"/update-user-detail", "/update-user-detail/"})
-    public ResponseEntity updateUserDetail(@RequestBody Map<String, String> json) {
+    public ResponseEntity updateUserDetail(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
         User user;
 
         try {
-            user = session.get(User.class, json.get("id"));
+            DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
+
+            user = session.get(User.class, decodedJWT.getSubject());
 
             if (user == null) {
                 return ResponseProvider.get(HttpStatus.NOT_FOUND, "User not found", null);
             }
         } catch (Exception error) {
-            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid token", null);
         }
 
         String username = json.get("username");
@@ -172,7 +191,7 @@ public class UserController {
     }
 
     @DeleteMapping(value={"/delete-user", "/delete-user"})
-    public ResponseEntity deleteUser(@RequestBody Map<String, String> json) {
+    public ResponseEntity deleteUser(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         String password = json.get("password");
         String confirmPassword = json.get("confirmPassword");
 
@@ -189,13 +208,15 @@ public class UserController {
         User user;
 
         try {
-            user = session.get(User.class, json.get("id"));
+            DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
+
+            user = session.get(User.class, decodedJWT.getSubject());
 
             if (user == null) {
                 return ResponseProvider.get(HttpStatus.NOT_FOUND, "User not found", null);
             }
         } catch (Exception error) {
-            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid token", null);
         }
 
         Boolean isPasswordMatch = password.equals(confirmPassword) && BCrypt.checkpw(password, user.getPassword());
