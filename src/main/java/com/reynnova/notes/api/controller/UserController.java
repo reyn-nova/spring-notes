@@ -124,6 +124,53 @@ public class UserController {
         return ResponseProvider.get(HttpStatus.OK, "Success get user detail", user);
     }
 
+    @PutMapping(value= {"/update-user-detail", "/update-user-detail/"})
+    public ResponseEntity updateUserDetail(@RequestBody Map<String, String> json) {
+        Session session = SessionProvider.get();
+
+        User user;
+
+        try {
+            user = session.get(User.class, json.get("id"));
+
+            if (user == null) {
+                return ResponseProvider.get(HttpStatus.NOT_FOUND, "User not found", null);
+            }
+        } catch (Exception error) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        }
+
+        String username = json.get("username");
+
+        if (username == null || username.isBlank()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified username", null);
+        }
+
+        boolean hasNonAlphanumeric = username.matches("^[a-zA-Z0-9]*$");
+
+        if (!hasNonAlphanumeric) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Only alphanumeric allowed in username", null);
+        }
+
+        Query query = session.createQuery("FROM User U Where U.username = '" + username + "'");
+        List<User> list =  query.getResultList();
+
+        Boolean isUsernameTakenByOther = list.size() > 0 && list.get(0).getId() != user.getId();
+
+        if (isUsernameTakenByOther) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Username is already taken", null);
+        }
+
+        user.setUsername(username);
+
+        session.beginTransaction();
+        session.merge(user);
+        session.getTransaction().commit();
+        session.close();
+
+        return ResponseProvider.get(HttpStatus.OK, "Success update user", null);
+    }
+
     @DeleteMapping(value={"/delete-user", "/delete-user"})
     public ResponseEntity deleteUser(@RequestBody Map<String, String> json) {
         String password = json.get("password");
