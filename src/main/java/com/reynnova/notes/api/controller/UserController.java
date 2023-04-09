@@ -1,5 +1,6 @@
 package com.reynnova.notes.api.controller;
 
+import com.reynnova.notes.api.model.Project;
 import com.reynnova.notes.api.model.User;
 import jakarta.persistence.Query;
 import org.springframework.http.HttpStatus;
@@ -66,11 +67,12 @@ public class UserController {
     @PostMapping(value={"/sign-in", "/sign-in/"})
     public ResponseEntity signIn(@RequestBody Map<String, String> json) {
         String username = json.get("username");
-        String password = json.get("password");
 
         if (username == null || username.isBlank()) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified username", null);
         }
+
+        String password = json.get("password");
 
         if (password == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified password", null);
@@ -80,6 +82,8 @@ public class UserController {
 
         Query query = session.createQuery("FROM User U Where U.username = '" + username + "'");
         List<User> list =  query.getResultList();
+
+        session.close();
 
         if (list.size() == 0) {
             return ResponseProvider.get(HttpStatus.NOT_FOUND, "User not found", null);
@@ -96,5 +100,28 @@ public class UserController {
         user.setPassword(null);
 
         return ResponseProvider.get(HttpStatus.OK, "Success sign in", user);
+    }
+
+    @PostMapping(value={"/user-detail", "/user-detail/"})
+    public ResponseEntity userDetail(@RequestBody Map<String, String> json) {
+        Session session = SessionProvider.get();
+
+        User user;
+
+        try {
+            user = session.get(User.class, json.get("id"));
+
+            if (user == null) {
+                return ResponseProvider.get(HttpStatus.NOT_FOUND, "User not found", null);
+            }
+        } catch (Exception error) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
+        }
+
+        session.close();
+
+        user.setPassword(null);
+
+        return ResponseProvider.get(HttpStatus.OK, "Success get user detail", user);
     }
 }
