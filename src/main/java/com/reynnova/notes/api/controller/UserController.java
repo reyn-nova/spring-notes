@@ -62,4 +62,39 @@ public class UserController {
 
         return ResponseProvider.get(HttpStatus.OK, "Success create new user", user);
     }
+
+    @PostMapping(value={"/sign-in", "/sign-in/"})
+    public ResponseEntity signIn(@RequestBody Map<String, String> json) {
+        String username = json.get("username");
+        String password = json.get("password");
+
+        if (username == null || username.isBlank()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified username", null);
+        }
+
+        if (password == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified password", null);
+        }
+
+        Session session = SessionProvider.get();
+
+        Query query = session.createQuery("FROM User U Where U.username = '" + username + "'");
+        List<User> list =  query.getResultList();
+
+        if (list.size() == 0) {
+            return ResponseProvider.get(HttpStatus.NOT_FOUND, "User not found", null);
+        }
+
+        User user = list.get(0);
+
+        Boolean isPasswordMatch = BCrypt.checkpw(password, user.getPassword());
+
+        if (!isPasswordMatch) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong password", null);
+        }
+
+        user.setPassword(null);
+
+        return ResponseProvider.get(HttpStatus.OK, "Success sign in", user);
+    }
 }
