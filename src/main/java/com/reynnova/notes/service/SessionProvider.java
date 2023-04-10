@@ -1,5 +1,6 @@
 package com.reynnova.notes.service;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.Session;
 
@@ -17,5 +18,17 @@ public class SessionProvider {
         Session session = config.buildSessionFactory().openSession();
 
         return session;
+    }
+
+    public static Integer getSessionUserId(String token) {
+        Integer sessionUserId = null;
+
+        try {
+            DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
+
+            sessionUserId = Integer.parseInt(decodedJWT.getSubject());
+        } catch (Exception error) {}
+
+        return sessionUserId;
     }
 }

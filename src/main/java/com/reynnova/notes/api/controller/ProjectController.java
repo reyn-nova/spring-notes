@@ -59,7 +59,7 @@ public class ProjectController {
 
         Session session = SessionProvider.get();
 
-        Integer sessionUserId = getSessionUserId(token);
+        Integer sessionUserId = SessionProvider.getSessionUserId(token);
 
         if (sessionUserId == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
@@ -85,7 +85,7 @@ public class ProjectController {
 
         Session session = SessionProvider.get();
 
-        Integer sessionUserId = getSessionUserId(token);
+        Integer sessionUserId = SessionProvider.getSessionUserId(token);
 
         if (sessionUserId == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
@@ -113,7 +113,7 @@ public class ProjectController {
     public ResponseEntity deleteProject(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
-        Integer sessionUserId = getSessionUserId(token);
+        Integer sessionUserId = SessionProvider.getSessionUserId(token);
 
         if (sessionUserId == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
@@ -146,7 +146,7 @@ public class ProjectController {
     public ResponseEntity projectDetail(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
-        Integer sessionUserId = getSessionUserId(token);
+        Integer sessionUserId = SessionProvider.getSessionUserId(token);
 
         if (sessionUserId == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
@@ -165,19 +165,7 @@ public class ProjectController {
         return ResponseProvider.get(HttpStatus.OK, "Success get project", project);
     }
 
-    private Integer getSessionUserId(String token) {
-        Integer sessionUserId = null;
-
-        try {
-            DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
-
-            sessionUserId = Integer.parseInt(decodedJWT.getSubject());
-        } catch (Exception error) {}
-
-        return sessionUserId;
-    }
-
-    private Project getProjectById(Session session, Object id) {
+    static Project getProjectById(Session session, Object id) {
         Project project = null;
 
         try {
