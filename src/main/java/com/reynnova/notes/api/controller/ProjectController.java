@@ -1,19 +1,18 @@
 package com.reynnova.notes.api.controller;
 
-import com.auth0.jwt.interfaces.DecodedJWT;
-import com.reynnova.notes.service.JWTHelper;
-import jakarta.persistence.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
+import jakarta.persistence.Query;
 import org.hibernate.Hibernate;
 import org.hibernate.Session;
-
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.reynnova.notes.service.JWTHelper;
 import com.reynnova.notes.api.model.Note;
 import com.reynnova.notes.service.ResponseProvider;
 import com.reynnova.notes.service.SessionProvider;
