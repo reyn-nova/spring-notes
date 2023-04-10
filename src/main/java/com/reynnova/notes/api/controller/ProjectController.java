@@ -59,13 +59,13 @@ public class ProjectController {
 
         Session session = SessionProvider.get();
 
-        Integer ownerId = getSessionOwnerId(token);
+        Integer sessionUserId = getSessionUserId(token);
 
-        if (ownerId == null) {
+        if (sessionUserId == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
         }
 
-        project.setOwnerId(ownerId);
+        project.setOwnerId(sessionUserId);
 
         session.getTransaction().begin();
         session.persist(project);
@@ -85,15 +85,15 @@ public class ProjectController {
 
         Session session = SessionProvider.get();
 
-        Integer ownerId = getSessionOwnerId(token);
+        Integer sessionUserId = getSessionUserId(token);
 
-        if (ownerId == null) {
+        if (sessionUserId == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
         }
 
         Project project = getProjectById(session, json.get("id"));
 
-        if (project == null || ownerId != project.getOwnerId()) {
+        if (project == null || sessionUserId != project.getOwnerId()) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token or id", null);
         }
 
@@ -113,15 +113,15 @@ public class ProjectController {
     public ResponseEntity deleteProject(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
-        Integer ownerId = getSessionOwnerId(token);
+        Integer sessionUserId = getSessionUserId(token);
 
-        if (ownerId == null) {
+        if (sessionUserId == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
         }
 
         Project project = getProjectById(session, json.get("id"));
 
-        if (project == null || ownerId != project.getOwnerId()) {
+        if (project == null || sessionUserId != project.getOwnerId()) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token or id", null);
         }
 
@@ -146,15 +146,15 @@ public class ProjectController {
     public ResponseEntity projectDetail(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
-        Integer ownerId = getSessionOwnerId(token);
+        Integer sessionUserId = getSessionUserId(token);
 
-        if (ownerId == null) {
+        if (sessionUserId == null) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
         }
 
         Project project = getProjectById(session, json.get("id"));
 
-        if (project == null || ownerId != project.getOwnerId()) {
+        if (project == null || sessionUserId != project.getOwnerId()) {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token or id", null);
         }
 
@@ -165,16 +165,16 @@ public class ProjectController {
         return ResponseProvider.get(HttpStatus.OK, "Success get project", project);
     }
 
-    private Integer getSessionOwnerId(String token) {
-        Integer ownerId = null;
+    private Integer getSessionUserId(String token) {
+        Integer sessionUserId = null;
 
         try {
             DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
 
-            ownerId = Integer.parseInt(decodedJWT.getSubject());
+            sessionUserId = Integer.parseInt(decodedJWT.getSubject());
         } catch (Exception error) {}
 
-        return ownerId;
+        return sessionUserId;
     }
 
     private Project getProjectById(Session session, Object id) {

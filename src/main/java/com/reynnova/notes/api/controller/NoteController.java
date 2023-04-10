@@ -1,6 +1,8 @@
 package com.reynnova.notes.api.controller;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.reynnova.notes.api.model.Project;
+import com.reynnova.notes.service.JWTHelper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,22 +16,20 @@ import com.reynnova.notes.service.SessionProvider;
 
 @RestController
 public class NoteController {
-    @PostMapping(value={"/note", "/note/"})
-    public ResponseEntity addNote(@RequestBody Map<String, String> json) {
+    @PostMapping(value={"/create-note", "/create-note/"})
+    public ResponseEntity createNote(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
 
-        Project project;
+        Integer sessionUserId = getSessionUserId(token);
 
-        Object projectId = json.get("projectId");
+        if (sessionUserId == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
+        }
 
-        try {
-            project = session.get(Project.class, projectId);
+        Project project = getProjectById(session, json.get("projectId"));
 
-            if (project == null) {
-                return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Project with specified projectId not found", null);
-            }
-        } catch (Exception error) {
-            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid projectId", null);
+        if (project == null || sessionUserId != project.getOwnerId()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token or projectId", null);
         }
 
         String noteValue = json.get("value");
@@ -40,7 +40,7 @@ public class NoteController {
 
         Note note = new Note();
         note.setValue(noteValue);
-        note.setProjectId(Integer.parseInt((String) projectId));
+        note.setProjectId(project.getId());
 
         session.beginTransaction();
         session.persist(note);
@@ -51,8 +51,14 @@ public class NoteController {
     }
 
     @PutMapping(value={"/note", "/note/"})
-    public ResponseEntity updateNote(@RequestBody Map<String, String> json) {
+    public ResponseEntity updateNote(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
+
+        Integer sessionUserId = getSessionUserId(token);
+
+        if (sessionUserId == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
+        }
 
         Note note;
 
@@ -66,25 +72,25 @@ public class NoteController {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
         }
 
-        note.setValue(json.get("value"));
+        Project project = getProjectById(session, note.getProjectId());
 
-        Object projectId = json.get("projectId");
+        if (project == null || sessionUserId != project.getOwnerId()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token", null);
+        }
 
-        if (projectId != null) {
-            Project project;
+        String newTargetProjectId = json.get("projectId");
 
-            try {
-                project = session.get(Project.class, projectId);
+        if (newTargetProjectId != null) {
+            Project newTargetProject = getProjectById(session, newTargetProjectId);
 
-                if (project == null) {
-                    return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Project with specified projectId not found", null);
-                }
-            } catch (Exception error) {
-                return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid projectId", null);
+            if (newTargetProject == null || sessionUserId != newTargetProject.getOwnerId()) {
+                return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token or projectId", null);
             }
 
-            note.setProjectId(Integer.parseInt((String) projectId));
+            note.setProjectId(Integer.parseInt(newTargetProjectId));
         }
+
+        note.setValue(json.get("value"));
 
         session.beginTransaction();
         session.merge(note);
@@ -95,8 +101,14 @@ public class NoteController {
     }
 
     @DeleteMapping(value={"/note", "/note/"})
-    public ResponseEntity deleteNote(@RequestBody Map<String, String> json) {
+    public ResponseEntity deleteNote(@RequestHeader("Authorization") String token, @RequestBody Map<String, String> json) {
         Session session = SessionProvider.get();
+
+        Integer sessionUserId = getSessionUserId(token);
+
+        if (sessionUserId == null) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Invalid token", null);
+        }
 
         Note note;
 
@@ -110,11 +122,39 @@ public class NoteController {
             return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Unspecified or invalid id", null);
         }
 
+        Project project = getProjectById(session, note.getProjectId());
+
+        if (project == null || sessionUserId != project.getOwnerId()) {
+            return ResponseProvider.get(HttpStatus.BAD_REQUEST, "Wrong token", null);
+        }
+
         session.beginTransaction();
         session.remove(note);
         session.getTransaction().commit();
         session.close();
 
         return ResponseProvider.get(HttpStatus.OK, "Success delete note", null);
+    }
+
+    private Integer getSessionUserId(String token) {
+        Integer ownerId = null;
+
+        try {
+            DecodedJWT decodedJWT = JWTHelper.verifyToken(token);
+
+            ownerId = Integer.parseInt(decodedJWT.getSubject());
+        } catch (Exception error) {}
+
+        return ownerId;
+    }
+
+    private Project getProjectById(Session session, Object id) {
+        Project project = null;
+
+        try {
+            project = session.get(Project.class, id);
+        } catch (Exception error) {}
+
+        return project;
     }
 }
